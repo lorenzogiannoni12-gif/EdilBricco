@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>EDIL BRICCO NETWORK</title>
+
+<style>
+body {
+  background: radial-gradient(circle at top, #1a1a1a, #000);
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding-top: 60px;
+  color: white;
+}
+
+body::before {
+  content:"";
+  position: fixed;
+  top:-200px;
+  left:50%;
+  width:1200px;
+  height:600px;
+  background: radial-gradient(circle, rgba(255,200,80,0.15), transparent 70%);
+  transform: translateX(-50%);
+}
+
+.card {
+  background: rgba(20,20,20,0.95);
+  width: 460px;
+  margin: auto;
+  padding: 30px;
+  border-radius: 14px;
+  box-shadow: 0 0 25px rgba(255,150,50,0.25), 0 10px 40px rgba(0,0,0,0.8);
+  border: 1px solid rgba(255,140,0,0.2);
+}
+
+.logo {
+  width:330px;
+  margin-bottom:10px;
+  filter:
+    drop-shadow(0 0 8px rgba(255,140,0,0.6))
+    drop-shadow(0 0 35px rgba(255,140,0,0.4));
+}
+
+h2 { color:#ffae42; }
+
+p { color:#ccc; font-size:14px; }
+
+button {
+  padding: 15px;
+  margin: 8px;
+  font-size: 15px;
+  width: 100%;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.accept {
+  background:#ff7b00;
+  color:black;
+  font-weight:bold;
+}
+
+.sub { background:#333; color:white; }
+
+.abuse {
+  background:black;
+  color:#ff3333;
+  border:1px solid #ff3333;
+}
+
+.small {
+  font-size:12px;
+  color:#aaa;
+  margin-top:18px;
+  text-transform:uppercase;
+  letter-spacing:2px;
+}
+
+.progress {
+  width:100%;
+  background:#222;
+  border-radius:6px;
+  overflow:hidden;
+  margin-top:10px;
+}
+
+.bar {
+  height:10px;
+  width:0%;
+  background:#ff7b00;
+  transition:0.3s;
+}
+
+.footer {
+  font-size:10px;
+  margin-top:20px;
+  color:#666;
+  font-style:italic;
+}
+
+.footer p { margin:2px 0; font-size:10px; }
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<img src="logo.png" class="logo">
+
+<h2>RETE AZIENDALE EDIL BRICCO SRL</h2>
+
+<!-- SPLASH -->
+<div id="splash">
+
+<p id="accessText">Accesso riservato a personale e subappaltatori autorizzati.</p>
+
+<button class="accept" onclick="startFlow('employee')">🧱 ACCETTO IL CONTRATTO</button>
+
+<div class="small">Opzioni aggiuntive</div>
+
+<button class="sub" onclick="startFlow('sub')">📦 SUBAPPALTO</button>
+<button class="abuse" onclick="startFlow('abuse')">🚨 ABUSO</button>
+
+<div class="small">Servizi aggiuntivi</div>
+
+<div class="footer" id="footer">
+<p>Dove siamo?</p>
+<p>Chi ha preso la mia cazzuola?</p>
+<p>Contattaci</p>
+<p>La nostra storia</p>
+</div>
+
+</div>
+
+<!-- QUIZ -->
+<div id="quiz" style="display:none;">
+<p id="quizTitle"></p>
+<p id="quizQuestion"></p>
+<div id="answers"></div>
+
+<div class="progress">
+<div class="bar" id="bar"></div>
+</div>
+<p id="progressText"></p>
+</div>
+
+<!-- BADGE -->
+<div id="badge" style="display:none;">
+<h3>🪪 BADGE DIGITALE</h3>
+<p id="badgeRole"></p>
+<p id="badgeLevel"></p>
+<p id="badgeId"></p>
+</div>
+
+</div>
+
+<script>
+let errors=0,step=0,flow=null;
+
+const flows={
+ employee:{
+  role:"DIPENDENTE",
+  level:1,
+  questions:[
+   {q:"Quanti mattoni servono?",a:["3","12","Dipende dal geometra"],c:2}
+  ]
+ },
+ sub:{
+  role:"SUBAPPALTATORE",
+  level:2,
+  questions:[
+   {q:"Cosa deve avere il geometra?",a:["Solo cemento","Le 3 C","Una cazzuola"],c:1},
+   {q:"Chi comanda in cantiere?",a:["Il muratore","Il cliente","Il geometra"],c:2},
+   {q:"Quando finisce il lavoro?",a:["L'orario è flessibile","Alle 17","Quando lo dice il geometra"],c:2}
+  ]
+ },
+ abuse:{
+  role:"VISITATORE",
+  level:0,
+  questions:[
+   {q:"Perché sei qui?",a:["Wi-Fi gratis","Lavori in nero","Corso di formazione"],c:1},
+   {q:"Quanti mattoni hai?",a:["Cos’è un mattone?","100","Sì"],c:2},
+   {q:"Hai un documento?",a:["Carta","Patente","Mattone"],c:1},
+   {q:"Chi ti manda?",a:["Nessuno","Il Geometra","La finanza"],c:1},
+   {q:"Accetti responsabilità?",a:["No","Forse","Sì"],c:1}
+  ]
+ }
+};
+
+function startFlow(f){
+ flow=f; step=0; errors=0;
+ document.getElementById("splash").style.display="none";
+ document.getElementById("quiz").style.display="block";
+ loadQuestion();
+}
+
+function loadQuestion(){
+ const q=flows[flow].questions[step];
+ document.getElementById("quizTitle").innerHTML="<b>Verifica "+flows[flow].role+"</b>";
+ document.getElementById("quizQuestion").innerText=q.q;
+
+ let h="";
+ q.a.forEach((x,i)=>{
+  h+=`<button onclick="${i==q.c?"correct()":"wrong()"}">${x}</button>`;
+ });
+ document.getElementById("answers").innerHTML=h;
+
+ let pct=Math.floor((step/flows[flow].questions.length)*100);
+ document.getElementById("bar").style.width=pct+"%";
+ document.getElementById("progressText").innerText="Verifica geometra... "+pct+"%";
+}
+
+function wrong(){
+ errors++;
+ alert("Risposta errata. Porta un mattone.");
+
+ if(errors>=3){
+  alert("Hai portato 3 mattoni. Riparti.");
+  startFlow(flow);
+ }
+}
+
+function correct(){
+ step++;
+ if(step>=flows[flow].questions.length){
+  finish();
+ } else loadQuestion();
+}
+
+function finish(){
+ document.getElementById("quiz").style.display="none";
+ document.getElementById("badge").style.display="block";
+ document.getElementById("bar").style.width="100%";
+
+ let id="BRK-"+Math.floor(Math.random()*9000+1000);
+
+ document.getElementById("badgeRole").innerText="RUOLO: "+flows[flow].role;
+ document.getElementById("badgeLevel").innerText="LIVELLO: "+flows[flow].level;
+ document.getElementById("badgeId").innerText="ID: "+id;
+}
+</script>
+
+</body>
+</html>
