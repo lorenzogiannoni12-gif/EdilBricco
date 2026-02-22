@@ -42,7 +42,6 @@ body::before {
 }
 
 h2 { color:#ffae42; }
-
 p { color:#ccc; font-size:14px; }
 
 button {
@@ -55,19 +54,17 @@ button {
   cursor: pointer;
 }
 
-.accept {
-  background:#ff7b00;
-  color:black;
-  font-weight:bold;
+input {
+  width:100%;
+  padding:10px;
+  margin:5px 0;
+  border-radius:6px;
+  border:none;
 }
 
+.accept { background:#ff7b00; color:black; font-weight:bold; }
 .sub { background:#333; color:white; }
-
-.abuse {
-  background:black;
-  color:#ff3333;
-  border:1px solid #ff3333;
-}
+.abuse { background:black; color:#ff3333; border:1px solid #ff3333; }
 
 .small {
   font-size:12px;
@@ -98,6 +95,41 @@ button {
   color:#666;
   font-style:italic;
 }
+#orgBtn{
+ width:40%;
+ padding:10px;
+ margin:1px 0 8px auto;
+ background:#222;
+ color:white;
+ border-radius:8px;
+ border:1px solid #555;
+ font-size:12px;
+ cursor:pointer;
+
+ transform: translateX(-35px);
+}
+#sidebtn{
+ width:40%;
+ padding:10px;
+ margin:1px 0 8px auto;
+ background:#111;
+ color:#aaa;
+ border-radius:8px;
+ border:1px solid #444;
+ font-size:12px;
+ cursor:pointer;
+ pointer-events:none;
+opacity:0.8;
+cursor:default;
+
+ transform: translateX(40px);
+}
+#orgList{
+ max-height:300px;
+ overflow-y:auto;
+ margin-top:10px;
+ text-align:left;
+}
 
 .footer p { margin:2px 0; font-size:10px; }
 </style>
@@ -108,30 +140,46 @@ button {
 <div class="card">
 
 <img src="logo.png" class="logo">
-
-<h2>RETE AZIENDALE EDIL BRICCO SRL</h2>
+<h2>EDIL BRICCO SRL - AREA DIPENDENTI</h2>
 
 <!-- SPLASH -->
 <div id="splash">
+<p>Accesso riservato a personale e subappaltatori autorizzati.</p>
 
-<p id="accessText">Accesso riservato a personale e subappaltatori autorizzati.</p>
-
-<button class="accept" onclick="startFlow('employee')">🧱 ACCETTO IL CONTRATTO</button>
+<button class="accept" onclick="showRegister()">🧱 REGISTRAZIONE</button>
 
 <div class="small">Opzioni aggiuntive</div>
 
 <button class="sub" onclick="startFlow('sub')">📦 SUBAPPALTO</button>
 <button class="abuse" onclick="startFlow('abuse')">🚨 ABUSO</button>
+<div class="orgRow">
 
+  <button id="orgBtn" onclick="openOrg()">📋 <br>
+  ORGANIGRAMMA
+  </button>
+
+  <button id="sidebtn">
+ 👥 DIPENDENTI<br>
+ <strong id="userCount">0</strong>
+</button>
+
+</div>
 <div class="small">Servizi aggiuntivi</div>
-
-<div class="footer" id="footer">
+<div class="footer">
 <p>Dove siamo?</p>
 <p>Chi ha preso la mia cazzuola?</p>
-<p>Contattaci</p>
-<p>La nostra storia</p>
+<p>Lavora con noi</p>
+</div>
 </div>
 
+<!-- REGISTRAZIONE -->
+<div id="register" style="display:none;">
+<p><b>Registrazione dipendente</b></p>
+
+<input id="name" placeholder="Nome">
+<input id="surname" placeholder="Cognome">
+
+<button class="accept" onclick="startEmployee()">Continua</button>
 </div>
 
 <!-- QUIZ -->
@@ -144,6 +192,7 @@ button {
 <div class="bar" id="bar"></div>
 </div>
 <p id="progressText"></p>
+
 </div>
 
 <!-- BADGE -->
@@ -152,21 +201,67 @@ button {
 <p id="badgeRole"></p>
 <p id="badgeLevel"></p>
 <p id="badgeId"></p>
+<button class="accept" onclick="repeatQuiz()">🔁 Ripeti quiz</button>
+<button class="sub" onclick="goHome()">⬅ Torna al menu</button>
+<button class="abuse" onclick="buyTrowel()">🛒 Compra una cazzuola</button>
+
+</div>
+<div id="orgPanel" style="display:none;">
+<h3>📋 ORGANIGRAMMA AZIENDALE</h3>
+<div id="orgList"></div>
+<!-- LINK FOGLIO -->
+<!--<iframe
+ src="https://docs.google.com/spreadsheets/d/e/2PACX-1vR1beDvsUY4OP-I8slMpdyqu2oCp6BYV2EGGZaTHl0cx1fzseZVAoflUM-98ruMMnjl8cv8JicnieH2/pubhtml"
+ style="width:100%;height:300px;border:none;background:white;">
+</iframe>-->
+
+<button class="sub" onclick="closeOrg()">⬅ Torna</button>
 </div>
 
 </div>
 
 <script>
+
 let errors=0,step=0,flow=null;
+let userName="", userSurname="";
+const employeeRoles = [
+ "Capo Betoniera Senior",
+ "Responsabile Cazzuola Strategica",
+ "Direttore Operativo Mattoni",
+ "Commerciale SalseManager",
+ "Problem Solver",
+ "Supervisore Ponteggi & Aperitivi",
+ "Project Manager Intonaco",
+ "Tecnico Certificato Tromba Laser",
+ "Responsabile Pallette",
+ "Addetto Collaudo Detox",
+ "Capo Reparto Secchi & Palette",
+ "Analista Strutturale da Bar",
+ "Vice Geometra Ombra",
+ "Esperto Biscette Creative",
+ "Auditor Ufficiale DPI"
+];
 
 const flows={
- employee:{
-  role:"DIPENDENTE",
-  level:1,
-  questions:[
-   {q:"Quanti mattoni servono?",a:["3","12","Dipende dal geometra"],c:2}
-  ]
- },
+employee:{
+ role:"DIPENDENTE",
+ level:1,
+
+ pool:[
+  {q:"Quanti mattoni servono per un muro serio?",a:["2","10","Dipende dal geometra"],c:2},
+  {q:"Chi comanda in cantiere?",a:["Il cliente","Il muratore","Il geometra"],c:2},
+  {q:"Cosa va portato al geometra?",a:["Solo cemento","Le 3 C","Una cazzuola"],c:1},
+  {q:"Quando finisce il lavoro?",a:["Alle 17","Quando lo dice il geometra","Mai"],c:1},
+  {q:"Cos'è un cappotto termico?",a:["Un muratore freddo","Isolamento","Un giubbotto"],c:2},
+  {q:"Chi firma il collaudo?",a:["Il tecnico","Il cliente","Il geometra"],c:2},
+  {q:"Cosa manca sempre in cantiere?",a:["Tempo","Caffè","Tutto"],c:2},
+  {q:"Chi porta i DPI?",a:["Nessuno","Il geometra","Il lavoratore"],c:2},
+  {q:"Cos'è il PSC?",a:["Un documento","Una scusa","Un mattone"],c:2},
+  {q:"Che giorno si consegna?",a:["Oggi","Domani","Mai certo"],c:2}
+ ],
+
+ count:10
+},
  sub:{
   role:"SUBAPPALTATORE",
   level:2,
@@ -189,10 +284,45 @@ const flows={
  }
 };
 
+function showRegister(){
+ document.getElementById("splash").style.display="none";
+ document.getElementById("register").style.display="block";
+}
+
+function startEmployee(){
+ userName=document.getElementById("name").value.trim();
+ userSurname=document.getElementById("surname").value.trim();
+
+ if(!userName || !userSurname){
+  alert("Inserire nome e cognome.");
+  return;
+ }
+
+ document.getElementById("register").style.display="none";
+ startFlow('employee');
+}
+
 function startFlow(f){
- flow=f; step=0; errors=0;
+ flow=f;
+ step=0;
+ errors=0;
+ 
+ if(f !== "employee"){
+ userName="";
+ userSurname="";
+}
+
+ // Se è employee, genera le domande dal pool
+ if(flow === "employee"){
+   flows.employee.questions =
+     [...flows.employee.pool]
+       .sort(() => 0.5 - Math.random())
+       .slice(0, flows.employee.count);
+ }
+
  document.getElementById("splash").style.display="none";
  document.getElementById("quiz").style.display="block";
+
  loadQuestion();
 }
 
@@ -215,9 +345,8 @@ function loadQuestion(){
 function wrong(){
  errors++;
  alert("Risposta errata. Porta un mattone.");
-
  if(errors>=3){
-  alert("Hai portato 3 mattoni. Riparti.");
+  alert("Hai commesso 3 errori, riparti da capo e porta 3 mattoni. Coglione!.");
   startFlow(flow);
  }
 }
@@ -236,12 +365,136 @@ function finish(){
 
  let id="BRK-"+Math.floor(Math.random()*9000+1000);
 
- document.getElementById("badgeRole").innerText="RUOLO: "+flows[flow].role;
- document.getElementById("badgeLevel").innerText="LIVELLO: "+flows[flow].level;
- document.getElementById("badgeId").innerText="ID: "+id;
+ let roleText = flows[flow].role;
+
+ // SOLO per registrazione assegna ruolo casuale
+ if(flow === "employee"){
+   roleText = employeeRoles[Math.floor(Math.random()*employeeRoles.length)];
+ }
+
+ document.getElementById("badgeRole").innerText =
+ userName+" "+userSurname+" – "+roleText;
+
+ document.getElementById("badgeLevel").innerText =
+ "LIVELLO: "+flows[flow].level;
+
+ document.getElementById("badgeId").innerText = "ID: "+id;
+ 
+ fetch("https://docs.google.com/forms/d/e/1FAIpQLSc-1ZCV9KhWUdoVptTdZuJpNLz_cqpEH14MlXo3QVpa0ZkbEg/formResponse",{   //link forms
+ method:"POST",
+ mode:"no-cors",
+ headers:{
+  "Content-Type":"application/x-www-form-urlencoded"
+ },
+body:
+  "entry.1766632263=" + encodeURIComponent(userName) +
+  "&entry.1551268425=" + encodeURIComponent(userSurname) +
+  "&entry.586627416=" + encodeURIComponent(roleText) +
+  "&entry.1361897742=" + encodeURIComponent(id) +
+  "&submit=Submit"
+});
+
 }
+
+function goHome(){
+ flow=null;
+ step=0;
+ errors=0;
+
+ document.getElementById("quiz").style.display="none";
+ document.getElementById("badge").style.display="none";
+ document.getElementById("register").style.display="none";
+
+ document.getElementById("name").value="";
+ document.getElementById("surname").value="";
+
+ document.getElementById("splash").style.display="block";
+ document.getElementById("bar").style.width="0%";
+}
+
+function repeatQuiz(){
+ if(flow){
+   step=0;
+   errors=0;
+
+   document.getElementById("badge").style.display="none";
+   document.getElementById("quiz").style.display="block";
+   document.getElementById("bar").style.width="0%";
+
+   loadQuestion();
+ }
+}
+
+function buyTrowel(){
+ window.open(
+  "https://www.amazon.it/Spear-Jackson-cazzuola-10507-blu/dp/B0043YHKLQ/ref=sr_1_4?crid=2UQS6BLT1DO7&dib=eyJ2IjoiMSJ9.ya6dj_tzTsx3OX5fSEyAs48wfh2jWR7hFnJYz9hln5e2DEI4h3Dl62qjIuSmQ68iz1p9Za6E7xU1DZW7-tdcE2eKiXXclm0hxpoEa9Bv3mTkK1hxgdSSwQiELIr_zIonj22I6Dmn7Nc-t9uVa_cPejsDxEgyfMZLh6lGpYkaaq0-mw5dFBBBTlAqrD0WPv7Z8v6PybY1LQYVJrCOKma3PGIPMy91UxpnIM-ph-xMqB2tQvmv9uQ8muamyM2wLg52h0yZf-4dWhrxfey6kH_gXfBWqCzF8rEoGPkpn4nWy78.AVa14idI8gvTUgnhVqnnMzMmDoKtlt-5P-m9FQ8y7Zw&dib_tag=se&keywords=cazzuola+muratore&qid=1771452926&sprefix=cazzu%2Caps%2C249&sr=8-4",
+  "_blank"
+ );
+}
+const SHEET_CSV = "https://api.allorigins.win/raw?url=" +
+encodeURIComponent("https://docs.google.com/spreadsheets/d/e/2PACX-1vR1beDvsUY4OP-I8slMpdyqu2oCp6BYV2EGGZaTHl0cx1fzseZVAoflUM-98ruMMnjl8cv8JicnieH2/pub?gid=1518823272&single=true&output=csv");    //LINK COUNTER
+
+function openOrg(){
+
+ document.getElementById("splash").style.display="none";
+ document.getElementById("quiz").style.display="none";
+ document.getElementById("badge").style.display="none";
+ document.getElementById("register").style.display="none";
+ document.getElementById("orgPanel").style.display="block";
+
+ fetch(SHEET_CSV)
+ .then(r=>r.text())
+ .then(csv=>{
+
+   let rows = csv.trim().split("\n").slice(1);
+   let html="";
+
+   rows.reverse().forEach(row=>{
+     let c = row.split(",");
+
+     if(c[0]){
+       html+=`<p>${c[1]} ${c[2].charAt(0)}. – ${c[3]}</p>`;
+     }
+   });
+
+   document.getElementById("orgList").innerHTML =
+     html || "<p>Nessun dipendente.</p>";
+
+ });
+
+}
+
+function closeOrg(){
+ document.getElementById("orgPanel").style.display="none";
+ document.getElementById("splash").style.display="block";
+}
+
+
+function loadUserCount(){
+
+ const url =
+ "https://docs.google.com/spreadsheets/d/e/2PACX-1vR1beDvsUY4OP-I8slMpdyqu2oCp6BYV2EGGZaTHl0cx1fzseZVAoflUM-98ruMMnjl8cv8JicnieH2/pub?gid=1518823272&single=true&output=csv";
+
+ fetch("https://api.allorigins.win/raw?url="+encodeURIComponent(url))
+ .then(r=>r.text())
+ .then(csv=>{
+
+   let rows = csv.trim().split("\n");
+   let count = rows.length - 1;
+
+   document.getElementById("userCount").innerText = count;
+
+ })
+ .catch(e=>{
+   document.getElementById("userCount").innerText="–";
+ });
+
+}
+
+loadUserCount();
+
+
 </script>
 
 </body>
 </html>
-
